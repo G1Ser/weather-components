@@ -14,18 +14,13 @@ export class SvgIcon extends LitElement {
 
   static styles = css`
     :host {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .icon-wrapper {
-      display: inline-flex;
-      line-height: 0;
+      display: block;
+      box-sizing: border-box;
     }
     .icon-wrapper svg {
       width: var(--icon-size);
       height: var(--icon-size);
-      fill: var(--icon-color);
+      color: var(--icon-color);
       vertical-align: middle;
     }
   `;
@@ -77,10 +72,11 @@ export class SvgIcon extends LitElement {
    * 3. render (渲染阶段)
    */
   render() {
+    const size = /^\d+(\.\d+)?$/.test(this.size) ? `${this.size}px` : this.size;
     return html`
       <div
         class="icon-wrapper ${this.className}"
-        style="--icon-size:${this.size};--icon-color:${this.color};"
+        style="--icon-size:${size};--icon-color:${this.color};"
       >
         ${this.currentSvgNode}
       </div>

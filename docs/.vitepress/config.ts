@@ -27,7 +27,10 @@ export default defineConfig({
     sidebar: [
       {
         text: "组件",
-        items: [{ text: "Skeleton 骨架屏", link: "/components/skeleton" }],
+        items: [
+          { text: "Skeleton 骨架屏", link: "/components/skeleton" },
+          { text: "SvgIcon 图标", link: "/components/svg-icon" },
+        ],
       },
     ],
 

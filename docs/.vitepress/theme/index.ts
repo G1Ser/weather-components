@@ -6,6 +6,7 @@ export default {
   enhanceApp() {
     if (typeof window !== "undefined") {
       import("@/components/skeleton/skeleton.tsx");
+      import("@/components/svgIcon/svgIcon.tsx");
     }
   },
 };
