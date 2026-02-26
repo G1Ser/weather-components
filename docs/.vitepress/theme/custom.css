@@ -1,0 +1,57 @@
+@font-face {
+  font-family: "LXGW WenKai Screen";
+  src: url("../../../src/assets/fonts/lxgwscreen.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Consolas";
+  src: url("../../../src/assets/fonts/consolas.woff2") format("woff2");
+  font-weight: normal;
+  font-style: normal;
+}
+
+:root {
+  --vp-font-family-base: "LXGW WenKai Screen", sans-serif;
+  --vp-font-family-mono: "Consolas", monospace;
+}
+
+.VPHero .image-src {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--vp-c-brand-1);
+  box-shadow: 0 0 24px var(--vp-c-brand-2);
+  position: absolute;
+  z-index: 1;
+}
+
+.VPHero .image-container::before,
+.VPHero .image-container::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 1px solid var(--vp-c-brand-1);
+  animation: ripple 2.4s ease-out infinite;
+}
+
+.VPHero .image-container::after {
+  animation-delay: 1.2s;
+}
+
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}

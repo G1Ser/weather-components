@@ -1,0 +1,18 @@
+@import url("./styles/home-animation.css");
+
+@font-face {
+  font-family: "Consolas";
+  src: url("./assets/fonts/consolas.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "LXGW";
+  src: url("./assets/fonts/lxgwscreen.woff2") format("woff2");
+}
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  font-family: "Consolas", "LXGW";
+}
