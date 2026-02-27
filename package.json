@@ -3,9 +3,23 @@
   "version": "1.0.0",
   "description": "a custom weather component built with Lit",
   "type": "module",
+  "main": "./lib/g1-components.umd.js",
+  "module": "./lib/g1-components.es.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/g1-components.es.js",
+      "require": "./lib/g1-components.umd.js"
+    }
+  },
+  "files": [
+    "lib"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
+    "build:lib": "vite build --config vite.lib.config.ts",
     "preview": "vite preview",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -15,7 +29,7 @@
     "web components",
     "lit"
   ],
-  "author": "",
+  "author": "Chauncey",
   "license": "ISC",
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
@@ -25,6 +39,7 @@
     "@types/node": "^25.3.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4",
     "vitepress": "^1.6.4"
   }
 }

@@ -5,9 +5,9 @@ export default {
   ...DefaultTheme,
   enhanceApp() {
     if (typeof window !== "undefined") {
-      import("@/components/skeleton/skeleton.tsx");
-      import("@/components/svgIcon/svgIcon.tsx");
-      import("@/components/toast/toast.tsx");
+      import("@/components/skeleton/skeleton");
+      import("@/components/svgIcon/svgIcon");
+      import("@/components/toast/toast");
     }
   },
 };

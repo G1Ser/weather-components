@@ -1,11 +1,20 @@
 import { css, html, LitElement } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import "@/components/svgIcon/svgIcon";
+import infoSvg from "@/assets/svgs/info.svg?raw";
+import successSvg from "@/assets/svgs/success.svg?raw";
+import errorSvg from "@/assets/svgs/error.svg?raw";
 
 type ToastType = "success" | "error" | "info";
 
+const ICONS: Record<ToastType, string> = {
+  info: infoSvg,
+  success: successSvg,
+  error: errorSvg,
+};
+
 @customElement("g1-toast")
-export class Toast extends LitElement {
+class Toast extends LitElement {
   @property({ type: String }) message = "";
   @property({ type: String }) type: ToastType = "info";
   @property({ type: Number }) duration = 2000;
@@ -84,7 +93,7 @@ export class Toast extends LitElement {
           ? "toast-leave"
           : "toast-enter"}"
       >
-        <g1-svg-icon name="${this.type}" size="20"></g1-svg-icon>
+        <g1-svg-icon .svg="${ICONS[this.type]}" size="20"></g1-svg-icon>
         <span class="toast-message">${this.message}</span>
       </div>
     `;
