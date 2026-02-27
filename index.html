@@ -11,11 +11,48 @@
         flex-direction: column;
         gap: 10px;
       }
+      .thumb-icon {
+        cursor: pointer;
+      }
+      .thumb-icon:hover {
+        --g1-icon-color: red;
+      }
+      .toast-demo {
+        display: flex;
+        gap: 12px;
+      }
+      .toast-btn {
+        padding: 6px 16px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .toast-btn--success {
+        background: #52c41a;
+        color: #fff;
+      }
+      .toast-btn--error {
+        background: #ff4d4f;
+        color: #fff;
+      }
+      .toast-btn--info {
+        background: #1677ff;
+        color: #fff;
+      }
     </style>
   </head>
   <body>
     <script type="module" src="/src/main.ts"></script>
-    <h1 style="margin: 16px 0">骨架屏组件</h1>
+    <script type="module">
+      import { showToast } from "/src/components/toast/toast.tsx";
+      document.getElementById("btn-success").onclick = () =>
+        showToast("操作成功", "success");
+      document.getElementById("btn-error").onclick = () =>
+        showToast("请求失败", "error");
+      document.getElementById("btn-info").onclick = () => showToast("提示信息");
+    </script>
+    <h1 style="margin: 16px 0">Skeleton 骨架屏组件</h1>
     <div class="demo">
       <g1-skeleton style="width: 200px; height: 16px"></g1-skeleton>
       <g1-skeleton
@@ -28,6 +65,20 @@
       <g1-svg-icon name="error" size="48"></g1-svg-icon>
       <g1-svg-icon name="info" size="48"></g1-svg-icon>
       <g1-svg-icon name="success" size="48"></g1-svg-icon>
+      <g1-svg-icon
+        name="thumb"
+        size="48"
+        color="blue"
+        class="thumb-icon"
+      ></g1-svg-icon>
+    </div>
+    <h1 style="margin: 16px 0">Toast 提示组件</h1>
+    <div class="toast-demo">
+      <button class="toast-btn toast-btn--success" id="btn-success">
+        成功
+      </button>
+      <button class="toast-btn toast-btn--error" id="btn-error">错误</button>
+      <button class="toast-btn toast-btn--info" id="btn-info">提示</button>
     </div>
   </body>
 </html>

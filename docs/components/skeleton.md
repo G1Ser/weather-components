@@ -7,7 +7,7 @@
 通过 `style` 设置宽高，控制骨架屏的尺寸。
 
 <ClientOnly>
-  <div style="display:flex;flex-direction:column;gap:10px;background:#1b1b1f;">
+  <div style="display:flex;flex-direction:column;gap:10px">
     <g1-skeleton style="width:100%;height:16px" />
     <g1-skeleton style="width:50%;height:16px" />
     <g1-skeleton style="width:150px;height:16px" />
@@ -25,9 +25,7 @@
 配合 `border-radius: 50%` 实现头像占位效果。
 
 <ClientOnly>
-  <div style="background:#1b1b1f">
     <g1-skeleton style="width:150px;height:150px;border-radius: 50%" />
-  </div>
 </ClientOnly>
 
 ```html
@@ -39,9 +37,7 @@
 模拟卡片内容加载状态。
 
 <ClientOnly>
-  <div style="background:#1b1b1f;border-radius:8px">
     <g1-skeleton style="width:260px;height:140px;border-radius:8px" />
-  </div>
 </ClientOnly>
 
 ```html

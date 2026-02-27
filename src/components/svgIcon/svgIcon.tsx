@@ -7,21 +7,22 @@ export class SvgIcon extends LitElement {
   @property({ type: String }) name = "";
   @property({ type: String }) size = "1rem";
   @property({ type: String }) color = "currentColor";
-  @property({ type: String }) className = "";
 
   // --- 内部状态 ---
   @state() private currentSvgNode: SVGElement | null = null;
 
   static styles = css`
     :host {
-      display: block;
+      display: inline-block;
+      width: var(--icon-size);
+      height: var(--icon-size);
       box-sizing: border-box;
     }
     .icon-wrapper svg {
-      width: var(--icon-size);
-      height: var(--icon-size);
-      color: var(--icon-color);
-      vertical-align: middle;
+      width: 100%;
+      height: 100%;
+      color: var(--g1-icon-color, var(--icon-color));
+      transition: color 0.3s ease;
     }
   `;
 
@@ -44,6 +45,15 @@ export class SvgIcon extends LitElement {
     super.updated(changedProperties);
     if (changedProperties.has("name")) {
       this.loadSvg();
+    }
+    if (changedProperties.has("size")) {
+      const size = /^\d+(\.\d+)?$/.test(this.size)
+        ? `${this.size}px`
+        : this.size;
+      this.style.setProperty("--icon-size", size);
+    }
+    if (changedProperties.has("color")) {
+      this.style.setProperty("--icon-color", this.color);
     }
   }
 
@@ -72,14 +82,6 @@ export class SvgIcon extends LitElement {
    * 3. render (渲染阶段)
    */
   render() {
-    const size = /^\d+(\.\d+)?$/.test(this.size) ? `${this.size}px` : this.size;
-    return html`
-      <div
-        class="icon-wrapper ${this.className}"
-        style="--icon-size:${size};--icon-color:${this.color};"
-      >
-        ${this.currentSvgNode}
-      </div>
-    `;
+    return html` <div class="icon-wrapper">${this.currentSvgNode}</div> `;
   }
 }
