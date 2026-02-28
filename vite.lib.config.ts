@@ -1,4 +1,5 @@
 import path from "node:path";
+import fs from "node:fs";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
@@ -15,6 +16,17 @@ export default defineConfig({
       rollupTypes: true,
       tsconfigPath: "./tsconfig.json",
     }),
+    {
+      name: "rename-dts",
+      apply: "build",
+      closeBundle() {
+        const oldPath = path.resolve(__dirname, "lib/index.d.ts");
+        const newPath = path.resolve(__dirname, "lib/g1-components.es.d.ts");
+        if (fs.existsSync(oldPath)) {
+          fs.renameSync(oldPath, newPath);
+        }
+      },
+    },
   ],
   build: {
     outDir: "lib",
