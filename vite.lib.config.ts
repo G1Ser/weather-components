@@ -17,13 +17,19 @@ export default defineConfig({
       tsconfigPath: "./tsconfig.json",
     }),
     {
-      name: "rename-dts",
+      name: "format-dts",
       apply: "build",
       closeBundle() {
         const oldPath = path.resolve(__dirname, "lib/index.d.ts");
         const newPath = path.resolve(__dirname, "lib/g1-components.es.d.ts");
         if (fs.existsSync(oldPath)) {
-          fs.renameSync(oldPath, newPath);
+          const content = fs.readFileSync(oldPath, "utf-8");
+          const append = fs.readFileSync(
+            path.resolve(__dirname, "scripts/custom-elements.d.ts.tpl"),
+            "utf-8",
+          );
+          fs.writeFileSync(newPath, content + "\n" + append);
+          fs.unlinkSync(oldPath);
         }
       },
     },
