@@ -5,7 +5,7 @@ import { customElement, property, state } from "lit/decorators.js";
 // 全局配置
 // ==========================================
 
-interface SvgIconConfig {
+export interface SvgIconConfig {
   /**
    * SVG 文件根路径（运行时 URL），配置后 name 属性自动拼接路径并 fetch。
    * @example

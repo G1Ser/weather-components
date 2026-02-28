@@ -35,7 +35,7 @@ export declare class SvgIcon extends LitElement {
     render(): TemplateResult<1>;
 }
 
-declare interface SvgIconConfig {
+export declare interface SvgIconConfig {
     /**
      * SVG 文件根路径（运行时 URL），配置后 name 属性自动拼接路径并 fetch。
      * @example
