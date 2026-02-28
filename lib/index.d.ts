@@ -2,6 +2,8 @@ import { CSSResult } from 'lit';
 import { LitElement } from 'lit';
 import { TemplateResult } from 'lit';
 
+export declare function configureSvgIcon(config: Partial<SvgIconConfig>): void;
+
 export declare function showToast(message: string, type?: ToastType, duration?: number): void;
 
 export declare class Skeleton extends LitElement {
@@ -31,6 +33,17 @@ export declare class SvgIcon extends LitElement {
     private parseSvgString;
     private fetchSvg;
     render(): TemplateResult<1>;
+}
+
+declare interface SvgIconConfig {
+    /**
+     * SVG 文件根路径（运行时 URL），配置后 name 属性自动拼接路径并 fetch。
+     * @example
+     * configureSvgIcon({ basePath: '/icons' })
+     * // 之后使用: <g1-svg-icon name="home" />
+     * // 运行时自动请求: /icons/home.svg
+     */
+    basePath: string;
 }
 
 declare type ToastType = "success" | "error" | "info";
