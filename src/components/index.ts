@@ -5,3 +5,4 @@ export {
   type SvgIconConfig,
 } from "./svgIcon/svgIcon";
 export { showToast } from "./toast/toast";
+export { IntroScroll } from "./introScroll/introScroll";

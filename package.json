@@ -1,5 +1,5 @@
 {
-  "name": "weather-components",
+  "name": "g1components",
   "version": "1.0.0",
   "description": "a custom weather component built with Lit",
   "type": "module",
@@ -33,10 +33,12 @@
   "license": "ISC",
   "packageManager": "pnpm@10.4.1",
   "dependencies": {
-    "lit": "^3.3.2"
+    "lit": "^3.3.2",
+    "three": "^0.183.2"
   },
   "devDependencies": {
     "@types/node": "^25.3.1",
+    "@types/three": "^0.183.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-dts": "^4.5.4",

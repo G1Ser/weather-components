@@ -40,6 +40,90 @@
         background: #1677ff;
         color: #fff;
       }
+      .intro-scroll-demo {
+        margin-top: 8px;
+      }
+      .open-scroll-btn {
+        padding: 10px 28px;
+        background: linear-gradient(135deg, #3a2208 0%, #1a0e04 100%);
+        border: 1px solid rgba(180, 140, 50, 0.5);
+        border-radius: 6px;
+        color: #c8a96e;
+        font-size: 15px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        box-shadow: 0 0 12px rgba(180, 120, 20, 0.2);
+        transition: all 0.25s ease;
+      }
+      .open-scroll-btn:hover {
+        border-color: rgba(212, 175, 55, 0.8);
+        color: #d4af37;
+        box-shadow: 0 0 20px rgba(180, 120, 20, 0.4);
+      }
+
+      .scroll-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-align: center;
+        text-shadow: 0 1px 8px rgba(200, 150, 20, 0.45);
+      }
+      .scroll-title-divider {
+        margin: 6px auto 0;
+        width: 60%;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(180, 140, 50, 0.6) 30%,
+          rgba(180, 140, 50, 0.6) 70%,
+          transparent
+        );
+      }
+
+      .scroll-body {
+        color: #8a7050;
+        line-height: 1.8;
+        font-size: 0.88rem;
+        margin: 0;
+      }
+      .scroll-body h3 {
+        color: #a88a45;
+        margin: 0 0 4px;
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .scroll-body p {
+        margin: 0 0 10px;
+      }
+
+      .scroll-footer-row {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+      }
+      .scroll-btn {
+        background: transparent;
+        border: 1px solid rgba(180, 140, 50, 0.5);
+        color: #c8a96e;
+        padding: 7px 28px;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+      .scroll-btn:hover {
+        border-color: rgba(212, 175, 55, 0.9);
+        color: #d4af37;
+        box-shadow: 0 0 14px rgba(180, 120, 10, 0.35);
+      }
+      .scroll-btn--confirm {
+        background: rgba(100, 70, 10, 0.35);
+      }
     </style>
   </head>
   <body>
@@ -52,6 +136,53 @@
         showToast("请求失败", "error");
       document.getElementById("btn-info").onclick = () => showToast("提示信息");
     </script>
+    <script type="module">
+      function openScroll() {
+        if (document.querySelector("g1-intro-scroll")) return;
+
+        const el = document.createElement("g1-intro-scroll");
+
+        const header = document.createElement("div");
+        header.setAttribute("slot", "header");
+        header.innerHTML = `
+          <p class="scroll-title">任务书</p>
+          <div class="scroll-title-divider"></div>
+        `;
+
+        const body = document.createElement("div");
+        body.className = "scroll-body";
+        body.innerHTML = `
+          <h3>关于此项目</h3>                                                                                                         
+          <p>                                                                                                                            
+            G1 Components 是一套基于 Lit 构建的 Web Components 组件库，                                                                  
+            旨在提供轻量、可组合、无框架依赖的 UI 原子组件。                                                                             
+          </p> 
+        `;
+
+        const footer = document.createElement("div");
+        footer.setAttribute("slot", "footer");
+        footer.innerHTML = `
+          <div class="scroll-footer-row">
+            <button class="scroll-btn" id="scroll-cancel-btn">拒绝</button>
+            <button class="scroll-btn scroll-btn--confirm" id="scroll-confirm-btn">签字接受</button>
+          </div>
+        `;
+
+        el.appendChild(header);
+        el.appendChild(body);
+        el.appendChild(footer);
+        document.body.appendChild(el);
+
+        footer.querySelector("#scroll-confirm-btn").onclick = () => el.ignite();
+        footer.querySelector("#scroll-cancel-btn").onclick = () => el.remove();
+      }
+
+      document.getElementById("btn-open-scroll").onclick = openScroll;
+    </script>
+    <h1 style="margin: 16px 0">IntroScroll 卷轴组件</h1>
+    <div class="intro-scroll-demo">
+      <button class="open-scroll-btn" id="btn-open-scroll">打开简介</button>
+    </div>
     <h1 style="margin: 16px 0">Skeleton 骨架屏组件</h1>
     <div class="skeleton-demo">
       <g1-skeleton style="width: 200px; height: 16px"></g1-skeleton>
