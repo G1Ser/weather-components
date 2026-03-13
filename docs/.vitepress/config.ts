@@ -37,6 +37,7 @@ export default defineConfig({
           { text: "Skeleton 骨架屏", link: "/components/skeleton" },
           { text: "SvgIcon 图标", link: "/components/svg-icon" },
           { text: "Toast 轻提示", link: "/components/toast" },
+          { text: "IntroScroll 卷轴简介", link: "/components/intro-scroll" },
         ],
       },
     ],
