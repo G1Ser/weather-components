@@ -77,6 +77,13 @@ export class IntroScroll extends LitElement {
 
   private ctx: ThreeCtx | null = null;
 
+  /**
+   * 轨道控制事件中继处理器。
+   * 将插槽内容区域的拖拽 pointerdown 转发给 WebGL canvas，
+   * 使 OrbitControls 可在卷轴内容区域正常响应旋转操作。
+   */
+  private _orbitRelayHandler: ((e: PointerEvent) => void) | null = null;
+
   // ── DOM 查询 ──────────────────────────────────────────────────────────────
   @query("#webgl-canvas") private canvasContainer!: HTMLElement;
   @query("#css3d-canvas") private css3dCanvas!: HTMLElement;
@@ -148,7 +155,6 @@ export class IntroScroll extends LitElement {
 
     .header-area {
       flex-shrink: 0;
-      pointer-events: auto;
     }
 
     .main-area {
@@ -156,12 +162,10 @@ export class IntroScroll extends LitElement {
       min-height: 0;
       overflow-y: auto;
       scrollbar-width: none;
-      pointer-events: auto;
     }
 
     .footer-area {
       flex-shrink: 0;
-      pointer-events: auto;
     }
   `;
 
@@ -205,7 +209,7 @@ export class IntroScroll extends LitElement {
       void this.initThreeJS();
     }
   }
-
+  // lit生命周期
   async firstUpdated() {
     // 等待自定义字体加载，避免首帧字体闪烁
     if ("fonts" in document) {
@@ -227,6 +231,14 @@ export class IntroScroll extends LitElement {
    * 同时将 slot-container 归还原位，保证 <slot> 投影不中断。
    */
   private _cleanup() {
+    if (this._orbitRelayHandler) {
+      this.slotContainer?.removeEventListener(
+        "pointerdown",
+        this._orbitRelayHandler,
+      );
+      this._orbitRelayHandler = null;
+    }
+
     if (this.ctx) {
       this.ctx.renderer.setAnimationLoop(null);
       this.ctx.controls.dispose();
@@ -298,6 +310,16 @@ export class IntroScroll extends LitElement {
     slotEl.style.inset = "auto";
     slotEl.style.width = `${CONTENT_W}px`;
     slotEl.style.height = `${CONTENT_H}px`;
+
+    // 插槽内容可以被拖拽
+    this._orbitRelayHandler = (e: PointerEvent) => {
+      const target = e.target as HTMLElement;
+      // 交互元素保留原生行为，不转发
+      if (target.closest("button")) return;
+      e.preventDefault(); // 防止拖拽时触发文字选中
+      renderer.domElement.dispatchEvent(new PointerEvent("pointerdown", e));
+    };
+    slotEl.addEventListener("pointerdown", this._orbitRelayHandler);
 
     // 将 slot-container 作为 CSS3DObject 贴到卷轴正面
     // z = 0.05：略高于纸面（纸面最大 z ≈ 0.042），避免 z-fighting
