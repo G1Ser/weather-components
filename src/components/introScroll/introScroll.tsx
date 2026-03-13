@@ -29,19 +29,42 @@ import {
   buildParticleShaders,
 } from "./shaders";
 
-/** 卷轴平面宽度（Three.js 世界单位） */
-const GEO_W = 2.4;
-/** 卷轴平铺（未卷曲）区域高度（Three.js 世界单位） */
-const FLAT_H = 1.5;
+// ── 卷轴几何体 CPU 噪声辅助函数 ──────────────────────────────────────────────
+// 用于初始化阶段对顶点施加皱纸位移，与 shaders.ts 的 GPU 版本独立，
+// 仅在几何体构建时运行一次（CPU），不参与逐帧渲染。
+
+/** 哈希：2D 整数坐标 → [0, 1] 伪随机 */
+const _nh = (ax: number, ay: number): number => {
+  const s = Math.sin(ax * 127.1 + ay * 311.7) * 43758.5453;
+  return s - Math.floor(s);
+};
+/** Value Noise：双线性插值，Hermite 光滑 */
+const _nv = (x: number, y: number): number => {
+  const ix = Math.floor(x),
+    iy = Math.floor(y);
+  const fx = x - ix,
+    fy = y - iy;
+  const u = fx * fx * (3 - 2 * fx);
+  const v = fy * fy * (3 - 2 * fy);
+  return (
+    _nh(ix, iy) * (1 - u) * (1 - v) +
+    _nh(ix + 1, iy) * u * (1 - v) +
+    _nh(ix, iy + 1) * (1 - u) * v +
+    _nh(ix + 1, iy + 1) * u * v
+  );
+};
+/** 4 层分形布朗运动 → [0, ~0.94] */
+const _fbm = (x: number, y: number): number =>
+  _nv(x, y) * 0.5 +
+  _nv(x * 2.1, y * 2.1) * 0.25 +
+  _nv(x * 4.3, y * 4.3) * 0.125 +
+  _nv(x * 8.7, y * 8.7) * 0.0625;
 
 /**
- * CSS3DObject 元素宽度（CSS 像素）。
- * CSS3D_SCALE 将 CSS px 映射到 Three.js 世界单位：
- *   CONTENT_W × CSS3D_SCALE = GEO_W（视觉上与卷轴等宽）
+ * CSS3DObject 的 HTML 内容层固定宽度（CSS 像素，内部常量）。
+ * 实际显示尺寸由 css3dScale（世界单位/像素）缩放到 scrollWidth。
  */
 const CONTENT_W = 500;
-const CONTENT_H = Math.round((CONTENT_W * FLAT_H) / GEO_W); // ≈ 346
-const CSS3D_SCALE = GEO_W / CONTENT_W; // 0.0052
 
 /** initThreeJS 初始化后挂载到 this.ctx 的场景资源集合 */
 type ThreeCtx = {
@@ -66,6 +89,26 @@ export class IntroScroll extends LitElement {
 
   /** 是否启用鼠标/触摸轨道旋转控制（默认 true） */
   @property({ type: Boolean }) enableControls = true;
+
+  /**
+   * 卷轴纸张宽度（Three.js 世界单位）。
+   * 改变后自动重建场景，默认 1.8。
+   */
+  @property({ type: Number }) scrollWidth = 1.8;
+
+  /**
+   * 卷轴纸张总高度（Three.js 世界单位），含两端卷曲部分。
+   * 内容可见区域约为总高度的 80%，其余用于卷边。
+   * 改变后自动重建场景，默认 2.4。
+   */
+  @property({ type: Number }) scrollHeight = 2.4;
+
+  /**
+   * 内容可见区域占纸张总高度的比例（0~1）。
+   * 剩余部分平均分配给两端卷边：值越大内容区越高、卷边越小；
+   * 值越小卷边越夸张。改变后自动重建场景，默认 0.8。
+   */
+  @property({ type: Number }) contentRatio = 0.8;
 
   // ── 内部状态 ──────────────────────────────────────────────────────────────
 
@@ -209,8 +252,20 @@ export class IntroScroll extends LitElement {
       void this.initThreeJS();
     }
   }
-  // lit生命周期
-  async firstUpdated() {
+  // ── Lit 生命周期 ───────────────────────────────────────────────────────────
+
+  protected override updated(changedProps: Map<string, unknown>) {
+    if (
+      (changedProps.has("scrollWidth") ||
+        changedProps.has("scrollHeight") ||
+        changedProps.has("contentRatio")) &&
+      this.ctx
+    ) {
+      void this.initThreeJS();
+    }
+  }
+
+  protected override async firstUpdated() {
     // 等待自定义字体加载，避免首帧字体闪烁
     if ("fonts" in document) {
       await document.fonts.ready;
@@ -271,6 +326,16 @@ export class IntroScroll extends LitElement {
   private async initThreeJS() {
     this._cleanup();
 
+    // ── 纸张尺寸（由 property 驱动）────────────────────────────────────────
+    const geoW = this.scrollWidth;
+    const geoH = this.scrollHeight;
+    /** 内容可见平坦区域高度（由 contentRatio 控制） */
+    const flatH = geoH * Math.max(0.1, Math.min(0.98, this.contentRatio));
+    /** CSS3D 内容层的像素高度，与 flatH 对齐 */
+    const contentH = Math.round((CONTENT_W * flatH) / geoW);
+    /** CSS px → Three.js 世界单位的缩放系数 */
+    const css3dScale = geoW / CONTENT_W;
+
     const container = this.canvasContainer;
     const w = container.clientWidth || 575;
     const h = container.clientHeight || 770;
@@ -304,12 +369,12 @@ export class IntroScroll extends LitElement {
     css3dRenderer.setSize(w, h);
     this.css3dCanvas.appendChild(css3dRenderer.domElement);
 
-    // slot-container 尺寸：映射到卷轴平铺区域（GEO_W × FLAT_H 世界单位）
+    // slot-container 尺寸：映射到卷轴平铺区域（geoW × flatH 世界单位）
     const slotEl = this.slotContainer;
     slotEl.style.position = "absolute";
     slotEl.style.inset = "auto";
     slotEl.style.width = `${CONTENT_W}px`;
-    slotEl.style.height = `${CONTENT_H}px`;
+    slotEl.style.height = `${contentH}px`;
 
     // 插槽内容可以被拖拽
     this._orbitRelayHandler = (e: PointerEvent) => {
@@ -322,10 +387,10 @@ export class IntroScroll extends LitElement {
     slotEl.addEventListener("pointerdown", this._orbitRelayHandler);
 
     // 将 slot-container 作为 CSS3DObject 贴到卷轴正面
-    // z = 0.05：略高于纸面（纸面最大 z ≈ 0.042），避免 z-fighting
+    // 略高于纸面（纸面最大 z ≈ 0.042），避免 z-fighting
     const scrollObj = new CSS3DObject(slotEl);
-    scrollObj.position.set(0, 0, 0.05);
-    scrollObj.scale.setScalar(CSS3D_SCALE);
+    scrollObj.position.set(0, 0, 0.0425);
+    scrollObj.scale.setScalar(css3dScale);
     scene.add(scrollObj);
 
     // ── 着色器 & 材质 ────────────────────────────────────────────────────────
@@ -370,29 +435,50 @@ export class IntroScroll extends LitElement {
     scene.add(particleSystem);
 
     // ── 卷轴几何体 ───────────────────────────────────────────────────────────
-    // PlaneGeometry 的上下边缘弯曲成圆弧，模拟纸张卷起效果。
-    // 中间平坦区域（|y| ≤ FLAT_H/2）加入轻微弓形弯曲（z 方向余弦偏移）。
-    const ROLL_R = 0.4; // 卷曲半径
-    const geo = new PlaneGeometry(GEO_W, 4.0, 64, 128);
+    // 皱纸设计：
+    //   · 大尺度 fBm（低频）控制整张纸的"揉皱"起伏，向内向外都有
+    //   · 中频 fBm 叠加褶皱细节
+    //   · 边缘卷曲：每列半径、起始位置均由噪声独立驱动，参差不齐
+    //   · 整张纸（包括中间）均有凹凸；移除边缘衰减权重和弓形偏置
+    const geo = new PlaneGeometry(geoW, geoH, 96, 192);
     const posAttr = geo.attributes.position as BufferAttribute;
     for (let i = 0; i < posAttr.count; i++) {
-      const y = posAttr.getY(i);
-      if (y > FLAT_H / 2) {
-        // 上方卷曲段：沿圆弧弯向背面
-        const th = (y - FLAT_H / 2) / ROLL_R;
-        posAttr.setY(i, FLAT_H / 2 + ROLL_R * Math.sin(th));
-        posAttr.setZ(i, ROLL_R * Math.cos(th) - ROLL_R);
-      } else if (y < -FLAT_H / 2) {
-        // 下方卷曲段
-        const th = (-y - FLAT_H / 2) / ROLL_R;
-        posAttr.setY(i, -(FLAT_H / 2 + ROLL_R * Math.sin(th)));
-        posAttr.setZ(i, ROLL_R * Math.cos(th) - ROLL_R);
+      const ox = posAttr.getX(i);
+      const oy = posAttr.getY(i);
+
+      // [0,1] 归一化坐标（随纸张尺寸自适应）
+      const nu = ox / geoW + 0.5;
+      const nv = oy / geoH + 0.5;
+
+      // 大尺度起伏（低频）：控制整体"揉皱"形态，向内向外均匀分布
+      const wz_L = _fbm(nu * 1.6 + 1.1, nv * 1.6 + 0.7);
+      // 中等皱纹（中频）：叠加褶皱细节
+      const wz_M = _fbm(nu * 4.2, nv * 4.2);
+      // 横向皱褶（X 方向位移用）
+      const wx = _fbm(nu * 2.8 + 5.3, nv * 2.8 + 2.1);
+
+      // 每列独立卷曲参数
+      const curlR = 0.13 + _nv(nu * 3.0, 7.7) * 0.32; // [0.13, 0.45]
+      const curlEdge = flatH / 2 + (_nv(nu * 2.5, 13.1) - 0.5) * 0.24;
+
+      if (oy > curlEdge) {
+        const t = (oy - curlEdge) / curlR;
+        posAttr.setX(i, ox + (wx - 0.5) * 0.08);
+        posAttr.setY(i, curlEdge + curlR * Math.sin(t));
+        posAttr.setZ(i, curlR * (Math.cos(t) - 1.0) + (wz_M - 0.47) * 0.07);
+      } else if (oy < -curlEdge) {
+        const t = (-oy - curlEdge) / curlR;
+        posAttr.setX(i, ox + (wx - 0.5) * 0.08);
+        posAttr.setY(i, -(curlEdge + curlR * Math.sin(t)));
+        posAttr.setZ(i, curlR * (Math.cos(t) - 1.0) + (wz_M - 0.47) * 0.07);
       } else {
-        // 平坦区域：余弦弓形（边缘略向前隆起，增加纸张质感）
-        posAttr.setZ(
-          i,
-          Math.cos((y / (FLAT_H / 2)) * Math.PI * 0.5) * -0.042 + 0.042,
-        );
+        // 平坦区域：皱纹振幅需控制在 ±0.08 以内。
+        // CSS3DRenderer 内容层是固定平面，振幅过大时从侧面看内容会飘离纸面。
+        // 公式：侧视偏移 ≈ sin(旋转角) × Z振幅，目标 < 0.04 世界单位。
+        const largeZ = (wz_L - 0.47) * 0.12; // ±0.056 大尺度起伏
+        const midZ = (wz_M - 0.47) * 0.06; // ±0.028 中频褶皱细节
+        posAttr.setX(i, ox + (wx - 0.5) * 0.03);
+        posAttr.setZ(i, largeZ + midZ); // 合计最大约 ±0.084，侧视偏移可接受
       }
     }
     geo.computeVertexNormals();
