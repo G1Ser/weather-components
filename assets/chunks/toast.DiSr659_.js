@@ -1,4 +1,4 @@
-import{a as c,i as d,b as g,t as v}from"./custom-element.CqqzorC7.js";import{n as l,r as w}from"./svgIcon.Bu-hQCco.js";const h=`<?xml version="1.0" standalone="no"?>
+import{a as c,i as d,b as g,t as v}from"./custom-element.CqqzorC7.js";import{n as l,r as w}from"./state.Cip0nMly.js";import"./svgIcon.tSCZsnCS.js";const h=`<?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg t="1767872123766"
     class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="6243"
     xmlns:xlink="http://www.w3.org/1999/xlink" width="14" height="14">
@@ -79,4 +79,4 @@ import{a as c,i as d,b as g,t as v}from"./custom-element.CqqzorC7.js";import{n a
         opacity: 0;
       }
     }
-  `;a([l({type:String})],o.prototype,"message",2);a([l({type:String})],o.prototype,"type",2);a([l({type:Number})],o.prototype,"duration",2);a([w()],o.prototype,"leaving",2);o=a([v("g1-toast")],o);function C(i,e="info",n=2e3){const t=document.createElement("g1-toast");t.message=i,t.type=e,t.duration=n,document.body.appendChild(t)}export{C as showToast};
+  `;a([l({type:String})],o.prototype,"message",2);a([l({type:String})],o.prototype,"type",2);a([l({type:Number})],o.prototype,"duration",2);a([w()],o.prototype,"leaving",2);o=a([v("g1-toast")],o);function T(i,e="info",n=2e3){const t=document.createElement("g1-toast");t.message=i,t.type=e,t.duration=n,document.body.appendChild(t)}export{T as showToast};
