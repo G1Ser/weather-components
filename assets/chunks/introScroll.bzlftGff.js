@@ -470,7 +470,7 @@ var<${s}> ${e} : ${r};`}}class wF{constructor(e){this.backend=e}getCurrentDepthS
         rgba(20, 11, 3, 0.45) 0%,
         rgba(3, 1, 0, 0.8) 60%
       );
-
+      touch-action: none;
       position: fixed;
       inset: 0;
       z-index: 9999;
