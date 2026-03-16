@@ -7,7 +7,6 @@ export default {
     if (typeof window !== "undefined") {
       import("@/components/skeleton/skeleton");
       import("@/components/svgIcon/svgIcon");
-      import("@/components/toast/toast");
     }
   },
 };

@@ -571,3 +571,9 @@ export class IntroScroll extends LitElement {
     }).observe(container);
   }
 }
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "g1-intro-scroll": IntroScroll;
+  }
+}

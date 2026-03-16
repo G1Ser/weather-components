@@ -134,3 +134,9 @@ export class SvgIcon extends LitElement {
     </div>`;
   }
 }
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "g1-svg-icon": SvgIcon;
+  }
+}

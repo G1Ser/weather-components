@@ -1,47 +1,61 @@
 import path from "node:path";
-import fs from "node:fs";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
+const r = (p: string) => path.resolve(__dirname, p);
+
+const components = ["skeleton", "svgIcon", "toast", "introScroll"] as const;
+
+const vendorChunks: Record<string, string[]> = {
+  three: ["three"],
+  lit: ["lit"],
+};
+
+function buildEntries() {
+  const componentEntries = Object.fromEntries(
+    components.map((name) => [
+      `${name}/index`,
+      r(`src/components/${name}/index.ts`),
+    ]),
+  );
+  return {
+    index: r("src/components/index.ts"),
+    ...componentEntries,
+  };
+}
+
+function splitVendorChunks(id: string): string | undefined {
+  for (const [chunk, pkgs] of Object.entries(vendorChunks)) {
+    if (pkgs.some((pkg) => id.includes(`node_modules/${pkg}`))) return chunk;
+  }
+}
+
 export default defineConfig({
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
+    alias: { "@": r("src") },
   },
   plugins: [
     dts({
       include: ["src/components/**/*"],
       outDir: "lib",
-      rollupTypes: true,
+      entryRoot: "src/components",
+      rollupTypes: false,
       tsconfigPath: "./tsconfig.json",
     }),
-    {
-      name: "format-dts",
-      apply: "build",
-      closeBundle() {
-        const oldPath = path.resolve(__dirname, "lib/index.d.ts");
-        const newPath = path.resolve(__dirname, "lib/g1-components.es.d.ts");
-        if (fs.existsSync(oldPath)) {
-          const content = fs.readFileSync(oldPath, "utf-8");
-          const append = fs.readFileSync(
-            path.resolve(__dirname, "scripts/custom-elements.d.ts.tpl"),
-            "utf-8",
-          );
-          fs.writeFileSync(newPath, content + "\n" + append);
-          fs.unlinkSync(oldPath);
-        }
-      },
-    },
   ],
   build: {
     outDir: "lib",
     copyPublicDir: false,
     lib: {
-      entry: path.resolve(__dirname, "src/components/index.ts"),
-      name: "G1Components",
-      formats: ["es", "umd"],
-      fileName: (format) => `g1-components.${format}.js`,
+      entry: buildEntries(),
+      formats: ["es"],
+    },
+    rollupOptions: {
+      output: {
+        entryFileNames: "[name].js",
+        chunkFileNames: "chunks/[name]-[hash].js",
+        manualChunks: splitVendorChunks,
+      },
     },
   },
 });
