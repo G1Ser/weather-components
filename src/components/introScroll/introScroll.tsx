@@ -235,21 +235,16 @@ export class IntroScroll extends LitElement {
   ignite() {
     if (this.isBurning) return;
     this.isBurning = true;
+    this.dispatchEvent(
+      new CustomEvent("burn", {
+        bubbles: true, // 向上冒泡
+        composed: true,
+      }),
+    );
     if (this.ctx) {
       this.ctx.startBurn = true;
     } else {
       this._pendingIgnite = true;
-    }
-  }
-
-  reset() {
-    this.isBurning = false;
-    this.removeAttribute("closing");
-    if (this.ctx) {
-      this.ctx.burnProgress.value = 0.0;
-      this.ctx.startBurn = false;
-      this.ctx.scene.position.z = 0;
-      void this.initThreeJS();
     }
   }
   // ── Lit 生命周期 ───────────────────────────────────────────────────────────
