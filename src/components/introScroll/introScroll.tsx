@@ -1,5 +1,6 @@
 import { css, html, LitElement } from "lit";
 import { customElement, property, state, query } from "lit/decorators.js";
+import isMobile from "@/utils/isMobile";
 import {
   Scene,
   PerspectiveCamera,
@@ -65,6 +66,8 @@ const _fbm = (x: number, y: number): number =>
  * 实际显示尺寸由 css3dScale（世界单位/像素）缩放到 scrollWidth。
  */
 const CONTENT_W = 500;
+const INTERACTIVE_SELECTOR =
+  "button,a,input,textarea,select,label,[contenteditable='true'],[data-no-orbit]";
 
 /** initThreeJS 初始化后挂载到 this.ctx 的场景资源集合 */
 type ThreeCtx = {
@@ -120,12 +123,18 @@ export class IntroScroll extends LitElement {
 
   private ctx: ThreeCtx | null = null;
 
+  /** 手机端渲染优化 */
+  private mobile = isMobile();
+
   /**
    * 轨道控制事件中继处理器。
    * 将插槽内容区域的拖拽 pointerdown 转发给 WebGL canvas，
    * 使 OrbitControls 可在卷轴内容区域正常响应旋转操作。
    */
   private _orbitRelayHandler: ((e: PointerEvent) => void) | null = null;
+  private _activeRelayPointerId: number | null = null;
+  private _resizeObserver: ResizeObserver | null = null;
+  private _resizeRaf = 0;
 
   // ── DOM 查询 ──────────────────────────────────────────────────────────────
   @query("#webgl-canvas") private canvasContainer!: HTMLElement;
@@ -139,7 +148,7 @@ export class IntroScroll extends LitElement {
         rgba(20, 11, 3, 0.45) 0%,
         rgba(3, 1, 0, 0.8) 60%
       );
-      touch-action: none;
+      touch-action: manipulation;
       position: fixed;
       inset: 0;
       z-index: 9999;
@@ -205,6 +214,8 @@ export class IntroScroll extends LitElement {
       min-height: 0;
       overflow-y: auto;
       scrollbar-width: none;
+      touch-action: pan-y;
+      -webkit-overflow-scrolling: touch;
     }
 
     .footer-area {
@@ -261,10 +272,6 @@ export class IntroScroll extends LitElement {
   }
 
   protected override async firstUpdated() {
-    // 等待自定义字体加载，避免首帧字体闪烁
-    if ("fonts" in document) {
-      await document.fonts.ready;
-    }
     // 等一帧，确保 DOM 尺寸已稳定
     await new Promise<void>((r) => requestAnimationFrame(() => r()));
     await this.initThreeJS();
@@ -286,7 +293,29 @@ export class IntroScroll extends LitElement {
         "pointerdown",
         this._orbitRelayHandler,
       );
+      this.slotContainer?.removeEventListener(
+        "pointermove",
+        this._orbitRelayHandler,
+      );
+      this.slotContainer?.removeEventListener(
+        "pointerup",
+        this._orbitRelayHandler,
+      );
+      this.slotContainer?.removeEventListener(
+        "pointercancel",
+        this._orbitRelayHandler,
+      );
       this._orbitRelayHandler = null;
+      this._activeRelayPointerId = null;
+    }
+
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
+    if (this._resizeRaf) {
+      cancelAnimationFrame(this._resizeRaf);
+      this._resizeRaf = 0;
     }
 
     if (this.ctx) {
@@ -330,6 +359,8 @@ export class IntroScroll extends LitElement {
     const contentH = Math.round((CONTENT_W * flatH) / geoW);
     /** CSS px → Three.js 世界单位的缩放系数 */
     const css3dScale = geoW / CONTENT_W;
+    /**分辨率 */
+    const dpr = window.devicePixelRatio || 1;
 
     const container = this.canvasContainer;
     const w = container.clientWidth || 575;
@@ -341,9 +372,13 @@ export class IntroScroll extends LitElement {
     camera.position.set(0, 0, 5.5); // 相机位于卷轴正前方
 
     // ── WebGPU 渲染器 ───────────────────────────────────────────────────────
-    const renderer = new WebGPURenderer({ alpha: true, antialias: true });
+    const renderer = new WebGPURenderer({
+      alpha: true,
+      antialias: !this.mobile,
+    });
     renderer.setSize(w, h);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderPixelRatio = this.mobile ? 1 : Math.min(dpr, 2);
+    renderer.setPixelRatio(renderPixelRatio);
     container.appendChild(renderer.domElement);
     await renderer.init();
 
@@ -372,14 +407,59 @@ export class IntroScroll extends LitElement {
     slotEl.style.height = `${contentH}px`;
 
     // 插槽内容可以被拖拽
+    const relayToRenderer = (
+      type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+      e: PointerEvent,
+    ) => {
+      renderer.domElement.dispatchEvent(
+        new PointerEvent(type, {
+          bubbles: true,
+          cancelable: true,
+          composed: true,
+          pointerId: e.pointerId,
+          pointerType: e.pointerType,
+          isPrimary: e.isPrimary,
+          button: e.button,
+          buttons: e.buttons,
+          clientX: e.clientX,
+          clientY: e.clientY,
+          ctrlKey: e.ctrlKey,
+          shiftKey: e.shiftKey,
+          altKey: e.altKey,
+          metaKey: e.metaKey,
+        }),
+      );
+    };
     this._orbitRelayHandler = (e: PointerEvent) => {
-      const target = e.target as HTMLElement;
-      // 交互元素保留原生行为，不转发
-      if (target.closest("button")) return;
-      e.preventDefault(); // 防止拖拽时触发文字选中
-      renderer.domElement.dispatchEvent(new PointerEvent("pointerdown", e));
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(INTERACTIVE_SELECTOR)) return;
+
+      if (e.type === "pointerdown") {
+        if (!e.isPrimary) return;
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        this._activeRelayPointerId = e.pointerId;
+        slotEl.setPointerCapture(e.pointerId);
+      } else if (this._activeRelayPointerId !== e.pointerId) {
+        return;
+      }
+
+      e.preventDefault();
+      relayToRenderer(
+        e.type as "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+        e,
+      );
+
+      if (e.type === "pointerup" || e.type === "pointercancel") {
+        this._activeRelayPointerId = null;
+        if (slotEl.hasPointerCapture(e.pointerId)) {
+          slotEl.releasePointerCapture(e.pointerId);
+        }
+      }
     };
     slotEl.addEventListener("pointerdown", this._orbitRelayHandler);
+    slotEl.addEventListener("pointermove", this._orbitRelayHandler);
+    slotEl.addEventListener("pointerup", this._orbitRelayHandler);
+    slotEl.addEventListener("pointercancel", this._orbitRelayHandler);
 
     // 将 slot-container 作为 CSS3DObject 贴到卷轴正面
     // 略高于纸面（纸面最大 z ≈ 0.042），避免 z-fighting
@@ -389,7 +469,8 @@ export class IntroScroll extends LitElement {
     scene.add(scrollObj);
 
     // ── 着色器 & 材质 ────────────────────────────────────────────────────────
-    const paperTex = createAgedPaperTexture();
+    const textureSize = this.mobile ? (dpr >= 2 ? 512 : 256) : 1024;
+    const paperTex = createAgedPaperTexture({ size: textureSize });
     const burnProgress = uniform(0.0);
 
     // 卷轴燃烧着色器（详见 introScroll.shaders.ts）
@@ -404,7 +485,7 @@ export class IntroScroll extends LitElement {
     scrollMat.positionNode = positionNode;
 
     // ── 余烬粒子 ─────────────────────────────────────────────────────────────
-    const particleCount = 80;
+    const particleCount = this.mobile ? 30 : 80;
     const particleGeo = new BufferGeometry();
     const particlePositions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
@@ -435,7 +516,9 @@ export class IntroScroll extends LitElement {
     //   · 中频 fBm 叠加褶皱细节
     //   · 边缘卷曲：每列半径、起始位置均由噪声独立驱动，参差不齐
     //   · 整张纸（包括中间）均有凹凸；移除边缘衰减权重和弓形偏置
-    const geo = new PlaneGeometry(geoW, geoH, 96, 192);
+    const segX = this.mobile ? 40 : 96;
+    const segY = this.mobile ? 80 : 192;
+    const geo = new PlaneGeometry(geoW, geoH, segX, segY);
     const posAttr = geo.attributes.position as BufferAttribute;
     for (let i = 0; i < posAttr.count; i++) {
       const ox = posAttr.getX(i);
@@ -555,15 +638,20 @@ export class IntroScroll extends LitElement {
     });
 
     // ── 响应尺寸变化 ─────────────────────────────────────────────────────────
-    new ResizeObserver(() => {
-      const nw = container.clientWidth;
-      const nh = container.clientHeight;
-      if (!nw || !nh) return;
-      renderer.setSize(nw, nh);
-      css3dRenderer.setSize(nw, nh);
-      camera.aspect = nw / nh;
-      camera.updateProjectionMatrix();
-    }).observe(container);
+    this._resizeObserver = new ResizeObserver(() => {
+      if (this._resizeRaf) return;
+      this._resizeRaf = requestAnimationFrame(() => {
+        this._resizeRaf = 0;
+        const nw = container.clientWidth;
+        const nh = container.clientHeight;
+        if (!nw || !nh) return;
+        renderer.setSize(nw, nh);
+        css3dRenderer.setSize(nw, nh);
+        camera.aspect = nw / nh;
+        camera.updateProjectionMatrix();
+      });
+    });
+    this._resizeObserver.observe(container);
   }
 }
 

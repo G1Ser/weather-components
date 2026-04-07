@@ -28,8 +28,13 @@ import type Node from "three/src/nodes/core/Node.js";
  *
  * @returns 已设置 SRGBColorSpace 的 CanvasTexture，可直接赋给材质
  */
-export function createAgedPaperTexture(): CanvasTexture {
-  const S = 1024; // 纹理分辨率（像素），正方形
+type PaperTextureOptions = {
+  size: number;
+};
+export function createAgedPaperTexture(
+  options: PaperTextureOptions,
+): CanvasTexture {
+  const S = Math.max(128, Math.min(2048, options.size)); // 纹理分辨率（像素），正方形
   const cv = document.createElement("canvas");
   cv.width = cv.height = S;
   const c = cv.getContext("2d")!;

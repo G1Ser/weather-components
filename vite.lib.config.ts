@@ -46,6 +46,17 @@ export default defineConfig({
   build: {
     outDir: "lib",
     copyPublicDir: false,
+    minify: "terser",
+    terserOptions: {
+      compress: {
+        passes: 2,
+        pure_getters: true,
+      },
+      mangle: true,
+      format: {
+        comments: false,
+      },
+    },
     lib: {
       entry: buildEntries(),
       formats: ["es"],
